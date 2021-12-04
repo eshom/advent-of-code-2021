@@ -1,5 +1,4 @@
 ## Processing input
-
 read_draws <- function(filepath = c("input.txt", "example.txt"), example = TRUE) {
         if (example)
                 filepath <- filepath[2]
@@ -56,7 +55,7 @@ bingo_turn_state <- function(game, turn) {
         lapply(bingo_mark(game), \(x) (x - turn) <= 0)
 }
 
-## Returns the number of the board that one, otherwise NULL
+## Returns the indice of the boards that won. `numeric(0)` = zero won
 bingo_winner <- function(game, turn) {
         state <- bingo_turn_state(game, turn)
         is_winner <- sapply(state, \(x) {
@@ -66,7 +65,7 @@ bingo_winner <- function(game, turn) {
         if (any(is_winner))
                 return(which(is_winner))
 
-        NULL
+        numeric(0)
 }
 
 bingo_winning_number <- function(game, winner_num, turn) {
@@ -83,6 +82,38 @@ bingo_unmarked_sum <- function(game, winner_num, turn) {
         sum(board[!marked])
 }
 
-bingo_unmarked_sum(bingo, 3, 12)
+## Vectorised version of `bingo_winner()`
+bingo_winners <- function(game) {
+        lapply(seq_along(game$draws), bingo_winner, game = game)
+}
 
-bingo_winning_number(bingo, 3, 12)
+bingo_winners_length <- function(game) {
+        sapply(bingo_winners(game), length)
+}
+
+first_winner_turn <- function(game) {
+        winners <- bingo_winners_length(bingo)
+        which(winners == 1) |> min()
+}
+
+bingo <- gen_bingo_game(example = FALSE)
+
+win_turn <- first_winner_turn(bingo)
+win_board <- bingo_winner(bingo, win_turn)
+
+bingo_unmarked_sum(bingo, win_board, win_turn) * bingo_winning_number(bingo, win_board, win_turn)
+
+## Puzzle two
+last_winner_turn_board <- function(game) {
+        winners <- bingo_winners(bingo)
+        winners_len <- sapply(winners, length)
+
+        which(winners_len == length(game$boards)) |> min() -> win_turn
+        setdiff(winners[[win_turn]], winners[[win_turn - 1]]) -> win_board
+
+        c(turn = win_turn, board = win_board)
+}
+
+last_win <- last_winner_turn_board(bingo)
+
+bingo_unmarked_sum(bingo, last_win["board"], last_win["turn"]) * bingo_winning_number(bingo, last_win["board"], last_win["turn"])
